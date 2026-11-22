@@ -1,0 +1,263 @@
+{
+  "info": {
+    "name": "API Catálogo y Favoritos (JWT)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Registro Usuario A",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 201 Created', () => pm.response.to.have.status(201));",
+              "const json = pm.response.json();",
+              "pm.test('Rol asignado es usuario', () => pm.expect(json.usuario.rol).to.eql('usuario'));",
+              "pm.test('Sin password_hash', () => pm.expect(json.usuario.password_hash).to.be.undefined);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"nombre\": \"Usuario Prueba A\", \"correo\": \"usuarioa@correo.ec\", \"password\": \"UserA2026*\"}"
+        },
+        "url": "{{baseUrl}}/api/auth/registro"
+      }
+    },
+    {
+      "name": "2. Login Admin (JWT)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.environment.set('adminToken', json.token);",
+              "pm.test('Rol es admin', () => pm.expect(json.usuario.rol).to.eql('admin'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo\": \"admin@catalogo.ec\", \"password\": \"Admin2026*Secure\"}"
+        },
+        "url": "{{baseUrl}}/api/auth/login"
+      }
+    },
+    {
+      "name": "3. Login Usuario A",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+              "pm.environment.set('tokenUsuarioA', pm.response.json().token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo\": \"usuarioa@correo.ec\", \"password\": \"UserA2026*\"}"
+        },
+        "url": "{{baseUrl}}/api/auth/login"
+      }
+    },
+    {
+      "name": "4. Listar Productos y Filtrar",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Lista de productos devuelta', () => pm.expect(pm.response.json().productos).to.be.an('array'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/productos?categoria=Accesorios"
+      }
+    },
+    {
+      "name": "5. Crear Producto (Admin)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 201 Created', () => pm.response.to.have.status(201));",
+              "pm.environment.set('ultimoProductoId', pm.response.json().producto.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"nombre\": \"Monitor Curvo LG 27 pulgadas\", \"descripcion\": \"Panel IPS QHD 144Hz HDR10\", \"categoria\": \"Monitores\", \"precio\": 349.99}"
+        },
+        "url": "{{baseUrl}}/api/productos"
+      }
+    },
+    {
+      "name": "6. Rechazo 403 Rol Usuario en Catálogo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 403 Forbidden', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenUsuarioA}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"nombre\": \"Teclado\", \"descripcion\": \"Desc\", \"categoria\": \"Accesorios\", \"precio\": 45}"
+        },
+        "url": "{{baseUrl}}/api/productos"
+      }
+    },
+    {
+      "name": "7. Agregar Favorito Usuario A",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 201 Created', () => pm.response.to.have.status(201));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenUsuarioA}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"productoId\": {{ultimoProductoId}}}"
+        },
+        "url": "{{baseUrl}}/api/favoritos"
+      }
+    },
+    {
+      "name": "8. Rechazo 409 Favorito Duplicado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 409 Conflict', () => pm.response.to.have.status(409));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenUsuarioA}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"productoId\": {{ultimoProductoId}}}"
+        },
+        "url": "{{baseUrl}}/api/favoritos"
+      }
+    },
+    {
+      "name": "9. Consultar Favoritos Usuario A",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Contiene favoritos', () => pm.expect(pm.response.json().total).to.be.above(0));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenUsuarioA}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/favoritos"
+      }
+    }
+  ]
+}
